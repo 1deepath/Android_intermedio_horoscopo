@@ -1,6 +1,8 @@
 package com.onedeepath.horoscapp.ui.luck
 
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import java.util.random.RandomGenerator
@@ -16,7 +18,10 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import com.onedeepath.horoscapp.R
 import com.onedeepath.horoscapp.databinding.FragmentLuckBinding
+import com.onedeepath.horoscapp.ui.core.listeners.OnSwipeTouchListeners
+import com.onedeepath.horoscapp.ui.providers.RandomCardProvider
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlin.random.Random
 
 @AndroidEntryPoint
@@ -26,6 +31,9 @@ class LuckFragment : Fragment() {
     private var _binding: FragmentLuckBinding? = null
     private val binding get() = _binding!!
 
+    @Inject
+    lateinit var randomCardProvider: RandomCardProvider
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initUI()
@@ -33,14 +41,57 @@ class LuckFragment : Fragment() {
     }
 
     private fun initUI() {
-
+        preparePrediction()
         initListeners()
 
     }
-
+    @SuppressLint("ClickableViewAccessibility")
     private fun initListeners() {
 
-        binding.ivRoulette.setOnClickListener { spinRoulette() }
+
+        binding.ivRoulette.setOnTouchListener(object : OnSwipeTouchListeners(requireContext()){
+
+            override fun onSwipeRight() {
+                spinRoulette()
+            }
+
+            override fun onSwipeLeft() {
+                spinRoulette()
+            }
+        })
+
+    }
+
+
+
+    private fun preparePrediction() {
+
+        val luck = randomCardProvider.getLucky()
+
+        luck?.let {
+            val currentPrediction = getString(it.text)
+
+            binding.tvLucky.text = currentPrediction
+            binding.ivLuckyCard.setImageResource(it.img)
+            binding.tvShare.setOnClickListener{ shareResult(currentPrediction) }
+
+        }
+
+
+    }
+
+    private fun shareResult(prediction:String) {
+
+        val sendIntent: Intent =  Intent().apply {
+
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, prediction)
+            type = "text/plain"
+
+        }
+
+        val shareIntent = Intent.createChooser(sendIntent, null)
+        startActivity(shareIntent)
 
     }
 
